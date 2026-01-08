@@ -1,4 +1,4 @@
-# NYC_Collisions
+# NYC_Collisions_R
 🚦 NYC Traffic Accidents Analysis (R) 
 
 📌 Project Overview
