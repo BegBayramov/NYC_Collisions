@@ -1,0 +1,132 @@
+---
+title: "NYC Traffic Accidents"
+author: "Beg Bayramov"
+date: "2025-08-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r} 
+library(here) 
+library(readr) 
+library(tidyverse) 
+library(lubridate) 
+library(ggplot2)
+```
+
+```{r} 
+df <- read.csv("NYC_Collisions.csv") 
+head(df) 
+summary(df) 
+colnames(df)
+``` 
+
+```{r} 
+#Compare the % of total accidents by month. Do you notice any seasonal patterns?
+df <- df %>% 
+  mutate( 
+    month = month(Date,label = TRUE, abbr = TRUE,locale = "English")
+    )
+
+accidents_by_month <-  df %>% 
+  count(month) %>% 
+  mutate(percent = n / sum(n) * 100) 
+
+accidents_by_month %>% 
+  ggplot(aes(x = month, y = percent)) + 
+  geom_col(fill = "#9AC0CD",width = 0.8)+
+  labs(
+    title = "Accidents by Month",
+    x = "Month",
+    y = "Percentage (%)"
+  )
+```
+
+```{r} 
+#Break down accident frequency by day of week and hour of day. 
+   #Based on this data, when do accidents occur most frequently?
+df <- df %>% 
+  mutate(
+    day = wday(Date,label = TRUE,abbr = TRUE,locale = "English"),
+    Times = hms(Time),
+    hour = hour(Times)
+    )
+
+accident_by_date <- df %>% 
+  group_by(Date)%>% 
+  summarize(total = n_distinct(Collision.ID),.groups = "keep") 
+
+
+accident_by_hour <- df %>% 
+  group_by(hour)%>% 
+  summarize(total = n_distinct(Collision.ID)) 
+
+ggplot(accident_by_hour,aes(x=hour, y= total))+
+  geom_line(color = "#CD69C9",size = 1)+
+  theme_minimal()+
+  geom_point()+
+  geom_smooth(method = "loess")+
+   labs(
+    title = "Number of Accidents by Hour",
+    x = "Hour of Day",
+    y = "Total Accidents"
+  )
+
+
+```
+
+```{r} 
+#On which particular street were the most accidents reported? 
+    #What does that represent as a % of all reported accidents?
+
+accident_by_street <- df %>% 
+  group_by(Street.Name) %>% 
+  summarize(total = n_distinct(Collision.ID)) %>% 
+  arrange(desc(total))%>%
+  ungroup()%>% 
+  mutate(accident_total = sum(total))%>% 
+  mutate(fraction_accident = (total/accident_total)*100) %>% 
+  head(n = 10)
+
+ggplot(accident_by_street,aes(x=fraction_accident,y=Street.Name,fill = Street.Name))+
+  geom_col()+
+  theme_minimal()+
+  labs(
+    title = "Share of Accidents by Street",
+    x = "Fraction of Total Accidents",
+    y = "Street Name"
+  )
+
+```
+
+```{r}
+
+#What was the most common contributing factor for the accidents reported? 
+    #What about for fatal accidents specifically?
+
+accident_factor <-  df %>% 
+  count(Contributing.Factor,name = "total") %>% 
+  mutate(total_sum = sum(total))%>% 
+  mutate(fraction_factor = (total/total_sum) * 100)%>%
+  arrange(desc(total)) %>% 
+ slice_head(n = 10)
+  
+
+ggplot(accident_factor,aes(x = total,y = Contributing.Factor, fill = Contributing.Factor))+
+  geom_col()+
+  theme_minimal()+
+  labs(
+    title = "Accidents by Contributing Factor",
+    x = "Total Number of Accidents",
+    y = "Contributing Factor"
+  )
+```
+
+
+
+
+
+
